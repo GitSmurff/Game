@@ -9,38 +9,38 @@ class Game:
         # Иницализация игрового окна и т.д
         pg.init()
         pg.mixer.init()
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT))
-        pg.display.set_caption(TITLE)
-        self.clock = pg.time.Clock()
+        self.screen = pg.display.set_mode((WIDTH, HEIGHT)) # По умолчанию разрешение экрана
+        pg.display.set_caption(TITLE) #Устанавливает текущий заголовок окна
+        self.clock = pg.time.Clock() #создать объект, чтобы помочь отслеживать время
         self.running = True
-        self.font_name = pg.font.match_font(FONT_NAME)
+        self.font_name = pg.font.match_font(FONT_NAME) #найти определенный шрифт в системе
         self.load_data()
 
     def load_data(self):
         # Загрузить новый рекорд в файл (highscore)
-        self.dir = path.dirname(__file__)
-        with open(path.join(self.dir, HS_FILE), 'r') as f:
+        self.dir = path.dirname(__file__) #возвращает имя директории пути path.
+        with open(path.join(self.dir, HS_FILE), 'r') as f: #соединяет пути с учётом особенностей операционной системы
             try:
                 self.highscore = int(f.read())
             except:
                 self.highscore = 0
         # загрузить графическое изображение (спрайт)
-        img_dir = path.join(self.dir, 'img')
-        self.spritesheet = Spritesheet(path.join(img_dir, SPRITESHEET))
+        img_dir = path.join(self.dir, 'img')#соединяет пути
+        self.spritesheet = Spritesheet(path.join(img_dir, SPRITESHEET))#соединяет пути
         # изображение облака
         self.cloud_images = []
         for i in range(1, 4):
-            self.cloud_images.append(pg.image.load(path.join(img_dir, 'cloud{}.png'.format(i))).convert())
+            self.cloud_images.append(pg.image.load(path.join(img_dir, 'cloud{}.png'.format(i))).convert()) #загрузить новое изображение из файла
         # загрузка звуков
         self.snd_dir = path.join(self.dir, 'snd')
-        self.jump_sound = pg.mixer.Sound(path.join(self.snd_dir, 'Jump33.wav'))
-        self.boost_sound = pg.mixer.Sound(path.join(self.snd_dir, 'Boost16.wav'))
+        self.jump_sound = pg.mixer.Sound(path.join(self.snd_dir, 'Jump33.wav')) #Создайте новый объект Sound из файла или буферного объекта
+        self.boost_sound = pg.mixer.Sound(path.join(self.snd_dir, 'Boost16.wav')) #Создайте новый объект Sound из файла или буферного объекта
 
     def new(self):
         # начать новую игру
         self.score = 0
-        self.all_sprites = pg.sprite.LayeredUpdates()
-        self.platforms = pg.sprite.Group()
+        self.all_sprites = pg.sprite.LayeredUpdates() #LayeredUpdates - это группа спрайтов, которая обрабатывает слои и рисует как OrderedUpdates
+        self.platforms = pg.sprite.Group() #Класс контейнера для хранения и управления несколькими объектами Sprite.
         self.powerups = pg.sprite.Group()
         self.mobs = pg.sprite.Group()
         self.clouds = pg.sprite.Group()
@@ -48,7 +48,7 @@ class Game:
         for plat in PLATFORM_LIST:
             Platform(self, *plat)
         self.mob_timer = 0
-        pg.mixer.music.load(path.join(self.snd_dir, 'Happy Tune.ogg'))
+        pg.mixer.music.load(path.join(self.snd_dir, 'Happy Tune.ogg'))#Загрузка музыкального файла для воспроизведения
         for i in range(8):
             c = Cloud(self)
             c.rect.y += 500
@@ -56,32 +56,34 @@ class Game:
 
     def run(self):
         # Игровой цикл
-        pg.mixer.music.play(loops=-1)
+        pg.mixer.music.play(loops=-1) #Запуск воспроизведения музыкального потока
         self.playing = True
         while self.playing:
             self.clock.tick(FPS)
             self.events()
             self.update()
             self.draw()
-        pg.mixer.music.fadeout(500)
+        pg.mixer.music.fadeout(500) #остановить воспроизведение музыки после исчезновения
 
     def update(self):
         # Игровая петля - обновление
         self.all_sprites.update()
 
         # Вызвать мобов?
-        now = pg.time.get_ticks()
+        now = pg.time.get_ticks() #получить время в миллисекундах
         if now - self.mob_timer > 5000 + random.choice([-1000, -500, 0, 500, 1000]):
             self.mob_timer = now
             Mob(self)
         # попадение мобов?
+        # pg.sprite.spritecollide Найдите спрайты в группе, которые пересекают другой спрайт.
         mob_hits = pg.sprite.spritecollide(self.player, self.mobs, False, pg.sprite.collide_mask)
+        #pg.sprite.collide_mask Обнаружение столкновений между двумя спрайтами, используя маски.
         if mob_hits:
             self.playing = False
 
         # проверить, попадает ли игрок на платформу - только если падение
         if self.player.vel.y > 0:
-            hits = pg.sprite.spritecollide(self.player, self.platforms, False)
+            hits = pg.sprite.spritecollide(self.player, self.platforms, False) #Найдите спрайты в группе, которые пересекают другой спрайт.
             if hits:
                 lowest = hits[0]
                 for hit in hits:
@@ -110,7 +112,7 @@ class Game:
                     self.score += 10
 
         # если игрок попадает в powerup
-        pow_hits = pg.sprite.spritecollide(self.player, self.powerups, True)
+        pow_hits = pg.sprite.spritecollide(self.player, self.powerups, True) #Найдите спрайты в группе, которые пересекают другой спрайт.
         for pow in pow_hits:
             if pow.type == 'boost':
                 self.boost_sound.play()
@@ -157,23 +159,23 @@ class Game:
 
     def show_start_screen(self):
         # начальный экран
-        pg.mixer.music.load(path.join(self.snd_dir, 'Yippee.ogg'))
-        pg.mixer.music.play(loops=-1)
+        pg.mixer.music.load(path.join(self.snd_dir, 'Yippee.ogg')) #Загрузка музыкального файла для воспроизведения
+        pg.mixer.music.play(loops=-1) #Запуск воспроизведения музыкального потока
         self.screen.fill(BGCOLOR)
         self.draw_text(TITLE, 48, WHITE, WIDTH / 2, HEIGHT / 4)
         self.draw_text("Стрелки для перемещения, Пробел для прыжка", 22, WHITE, WIDTH / 2, HEIGHT / 2)
         self.draw_text("Нажмите a key чтобы играть", 22, WHITE, WIDTH / 2, HEIGHT * 3 / 4)
         self.draw_text("Рекорд: " + str(self.highscore), 22, WHITE, WIDTH / 2, 15)
-        pg.display.flip()
+        pg.display.flip() #Обновить полный экран Поверхность экрана
         self.wait_for_key()
-        pg.mixer.music.fadeout(500)
+        pg.mixer.music.fadeout(500) #остановить воспроизведение музыки после исчезновения
 
     def show_go_screen(self): #показать экран
         # Конец/Продолжение
         if not self.running:
             return
-        pg.mixer.music.load(path.join(self.snd_dir, 'Yippee.ogg'))
-        pg.mixer.music.play(loops=-1)
+        pg.mixer.music.load(path.join(self.snd_dir, 'Yippee.ogg')) #Загрузка музыкального файла для воспроизведения
+        pg.mixer.music.play(loops=-1) #Запуск воспроизведения музыкального потока
         self.screen.fill(BGCOLOR)
         self.draw_text("ИГРА ОКОНЧЕНА", 48, WHITE, WIDTH / 2, HEIGHT / 4)
         self.draw_text("Счёт: " + str(self.score), 22, WHITE, WIDTH / 2, HEIGHT / 2)
@@ -185,9 +187,9 @@ class Game:
                 f.write(str(self.score))
         else:
             self.draw_text("Рекорд: " + str(self.highscore), 22, WHITE, WIDTH / 2, HEIGHT / 2 + 40)
-        pg.display.flip()
+        pg.display.flip() #Обновить полный экран Поверхность экрана
         self.wait_for_key()
-        pg.mixer.music.fadeout(500)
+        pg.mixer.music.fadeout(500) #остановить воспроизведение музыки после исчезновения
 
     def wait_for_key(self): #ждать ключа
         waiting = True
@@ -201,7 +203,7 @@ class Game:
                     waiting = False
 
     def draw_text(self, text, size, color, x, y): #рисовать текст
-        font = pg.font.Font(self.font_name, size)
+        font = pg.font.Font(self.font_name, size) #создать новый объект Font из файла
         text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect()
         text_rect.midtop = (x, y)
